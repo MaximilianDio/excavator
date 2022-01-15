@@ -1,0 +1,231 @@
+<robot name="excavator_working_arm">
+	<link name="ground" />
+	<!-- #### LOWER STRUCTURE #### -->
+	<!-- Joint between ground and lower structure -->
+	<joint name="ground_connection" type="fixed">
+		<parent link="ground" />
+		<child link="lower_structure" />
+		<origin xyz="0 0 0" rpy="0 0.0 0.0" />
+	</joint>
+	<link name="lower_structure">
+		<visual>
+			<origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
+			<geometry>
+				<mesh filename="file:///home/mdio/Documents/Projects/Robotics/ros2_ws/src/excavator_working_arm/meshes/vis_lower_structure.dae" scale="0.025 0.025 0.025" />
+			</geometry>
+			<material name="black">
+				<color rgba="0.0 0.0 0.0 1" />
+			</material>
+		</visual>
+	</link>
+	<!-- #### UPPER STRUCTURE #### -->
+	<!-- Joint between lower structure and upper structure -->
+	<joint name="joint_slew_axis" type="revolute">
+		<limit effort="1000.0" lower="-3.14" upper="3.14" velocity="0.5" />
+		<parent link="lower_structure" />
+		<child link="upper_structure" />
+		<origin xyz="0 0 1.125" rpy="0 0.0 0.0" />
+		<axis xyz=" 0 0 1" />
+	</joint>
+	<link name="upper_structure">
+		<visual>
+			<origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
+			<geometry>
+				<mesh filename="file:///home/mdio/Documents/Projects/Robotics/ros2_ws/src/excavator_working_arm/meshes/vis_upper_structure.dae" scale="0.025 0.025 0.025" />
+			</geometry>
+		</visual>
+	</link>
+	<!-- #### BOOM #### -->
+	<!-- Joint between Base and Boom -->
+	<joint name="joint_boom" type="revolute">
+		<limit effort="1000.0" lower="-3.14" upper="3.14" velocity="0.5" />
+		<parent link="upper_structure" />
+		<child link="boom" />
+		<origin xyz="0.12 0 0.6075" rpy="0 0.0 0.0" />
+		<axis xyz=" 0 1 0" />
+	</joint>
+	<link name="boom">
+		<visual>
+			<origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
+			<geometry>
+				<mesh filename="file:///home/mdio/Documents/Projects/Robotics/ros2_ws/src/excavator_working_arm/meshes/vis_boom.dae" scale="0.025 0.025 0.025" />
+			</geometry>
+		</visual>
+		<collision>
+			<geometry>
+				<mesh filename="file:///home/mdio/Documents/Projects/Robotics/ros2_ws/src/excavator_working_arm/meshes/boom_reduced.dae" scale="0.025 0.025 0.025" />
+			</geometry>
+			<contact_coefficients mu="0" kp="1000.0" kd="1.0" />
+		</collision>
+	</link>
+	<!-- Boom cylinder -->
+	<joint name="joint_boom_actuator_cylinder" type="revolute">
+		<limit effort="1000.0" lower="-2" upper="2" velocity="0.5" />
+		<parent link="upper_structure" />
+		<child link="boom_actuator_cylinder" />
+		<origin xyz="-1.039 0 0.1638" rpy="0 0.0 0.0" />
+		<axis xyz=" 0 1 0" />
+	</joint>
+	<link name="boom_actuator_cylinder">
+		<visual>
+			<origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
+			<geometry>
+				<mesh filename="file:///home/mdio/Documents/Projects/Robotics/ros2_ws/src/excavator_working_arm/meshes/vis_boom_actuator_cylinder.dae" scale="0.025 0.025 0.025" />
+			</geometry>
+		</visual>
+	</link>
+	<!-- Boom cylinder piston -->
+	<joint name="joint_boom_actuator_piston" type="prismatic">
+		<limit effort="1000.0" lower="-0.65" upper="0.6" velocity="0.5" />
+		<parent link="boom_actuator_cylinder" />
+		<child link="boom_actuator_piston" />
+		<origin xyz="0 0 0" rpy="0 0.0 0.0" />
+		<axis xyz="-23.58 0.0 96.25" />
+	</joint>
+	<link name="boom_actuator_piston">
+		<visual>
+			<origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
+			<geometry>
+				<mesh filename="file:///home/mdio/Documents/Projects/Robotics/ros2_ws/src/excavator_working_arm/meshes/vis_boom_actuator_piston.dae" scale="0.025 0.025 0.025" />
+			</geometry>
+		</visual>
+	</link>
+	<!-- #### ARM #### -->
+	<!-- Joint between Boom and Arm -->
+	<joint name="joint_arm" type="revolute">
+		<limit effort="1000.0" lower="-0.8" upper="0.8" velocity="0.5" />
+		<parent link="boom" />
+		<child link="arm" />
+		<origin xyz="-4.55 0 3.5" rpy="0 0.0 0.0" />
+		<axis xyz=" 0 1 0" />
+	</joint>
+	<link name="arm">
+		<visual>
+			<origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
+			<geometry>
+				<mesh filename="file:///home/mdio/Documents/Projects/Robotics/ros2_ws/src/excavator_working_arm/meshes/vis_arm.dae" scale="0.025 0.025 0.025" />
+			</geometry>
+		</visual>
+		<collision>
+			<geometry>
+				<mesh filename="file:///home/mdio/Documents/Projects/Robotics/ros2_ws/src/excavator_working_arm/meshes/arm_reduced.dae" scale="0.025 0.025 0.025" />
+			</geometry>
+			<contact_coefficients mu="0" kp="1000.0" kd="1.0" />
+		</collision>
+	</link>
+	<!-- Arm cylinder -->
+	<joint name="joint_arm_actuator_cylinder" type="revolute">
+		<limit effort="1000.0" lower="-0.5" upper="0.5" velocity="0.5" />
+		<parent link="boom" />
+		<child link="arm_actuator_cylinder" />
+		<origin xyz="-1.925 0 2.535" rpy="0 0.0 0.0" />
+		<axis xyz=" 0 1 0" />
+	</joint>
+	<link name="arm_actuator_cylinder">
+		<visual>
+			<origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
+			<geometry>
+				<mesh filename="file:///home/mdio/Documents/Projects/Robotics/ros2_ws/src/excavator_working_arm/meshes/vis_arm_actuator_cylinder.dae" scale="0.025 0.025 0.025" />
+			</geometry>
+		</visual>
+	</link>
+	<!-- Amr cylinder piston -->
+	<joint name="joint_arm_actuator_piston" type="prismatic">
+		<limit effort="1000.0" lower="-0.85" upper="0.4" velocity="0.5" />
+		<parent link="arm_actuator_cylinder" />
+		<child link="arm_actuator_piston" />
+		<origin xyz="0 0 0" rpy="0 0.0 0.0" />
+		<axis xyz="-103.62 0.0 80.13" />
+	</joint>
+	<link name="arm_actuator_piston">
+		<visual>
+			<origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
+			<geometry>
+				<mesh filename="file:///home/mdio/Documents/Projects/Robotics/ros2_ws/src/excavator_working_arm/meshes/vis_arm_actuator_piston.dae" scale="0.025 0.025 0.025" />
+			</geometry>
+		</visual>
+	</link>
+	<!-- #### BUCKET #### -->
+	<!-- Joint between Arm and Bucket -->
+	<joint name="joint_bucket_actuator_cylinder" type="revolute">
+		<limit effort="1000.0" lower="-0.5" upper="0.5" velocity="0.5" />
+		<parent link="arm" />
+		<child link="bucket_actuator_cylinder" />
+		<origin xyz="-0.669 0 0.0525" rpy="0 0.0 0.0" />
+		<axis xyz=" 0 1 0" />
+	</joint>
+	<link name="bucket_actuator_cylinder">
+		<visual>
+			<origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
+			<geometry>
+				<mesh filename="file:///home/mdio/Documents/Projects/Robotics/ros2_ws/src/excavator_working_arm/meshes/vis_bucket_actuator_cylinder.dae" scale="0.025 0.025 0.025" />
+			</geometry>
+		</visual>
+	</link>
+	<joint name="joint_bucket_actuator_piston" type="prismatic">
+		<limit effort="1000.0" lower="-0.5" upper="0.5" velocity="0.5" />
+		<parent link="bucket_actuator_cylinder" />
+		<child link="bucket_actuator_piston" />
+		<origin xyz="0.0 0.0 0.0" rpy="0 0.0 0.0" />
+		<axis xyz="-69.16 0 -98.78" />
+	</joint>
+	<link name="bucket_actuator_piston">
+		<visual>
+			<origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
+			<geometry>
+				<mesh filename="file:///home/mdio/Documents/Projects/Robotics/ros2_ws/src/excavator_working_arm/meshes/vis_bucket_actuator_piston.dae" scale="0.025 0.025 0.025" />
+			</geometry>
+		</visual>
+	</link>
+	<joint name="joint_bucket_link1" type="revolute">
+		<limit effort="1000.0" lower="-0.5" upper="0.5" velocity="0.5" />
+		<parent link="arm" />
+		<child link="bucket_bucket_link1" />
+		<origin xyz="-1.5 0 -2.4125" rpy="0 0.0 0.0" />
+		<axis xyz=" 0 1 0" />
+	</joint>
+	<link name="bucket_bucket_link1">
+		<visual>
+			<origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
+			<geometry>
+				<mesh filename="file:///home/mdio/Documents/Projects/Robotics/ros2_ws/src/excavator_working_arm/meshes/vis_bucket_link1.dae" scale="0.025 0.025 0.025" />
+			</geometry>
+		</visual>
+	</link>
+	<joint name="joint_bucket_link2" type="revolute">
+		<limit effort="1000.0" lower="-0.5" upper="0.5" velocity="0.5" />
+		<parent link="bucket_bucket_link1" />
+		<child link="bucket_bucket_link2" />
+		<origin xyz="-0.9 0 0" rpy="0 0.0 0.0" />
+		<axis xyz=" 0 1 0" />
+	</joint>
+	<link name="bucket_bucket_link2">
+		<visual>
+			<origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
+			<geometry>
+				<mesh filename="file:///home/mdio/Documents/Projects/Robotics/ros2_ws/src/excavator_working_arm/meshes/vis_bucket_link2.dae" scale="0.025 0.025 0.025" />
+			</geometry>
+		</visual>
+	</link>
+	<joint name="joint_bucket" type="revolute">
+		<limit effort="1000.0" lower="-1.2" upper="1.0" velocity="0.5" />
+		<parent link="arm" />
+		<child link="bucket" />
+		<origin xyz="-1.754 0 -2.99" rpy="0 0.0 0.0" />
+		<axis xyz=" 0 1 0" />
+	</joint>
+	<link name="bucket">
+		<visual>
+			<origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
+			<geometry>
+				<mesh filename="file:///home/mdio/Documents/Projects/Robotics/ros2_ws/src/excavator_working_arm/meshes/vis_bucket.dae" scale="0.025 0.025 0.025" />
+			</geometry>
+		</visual>
+		<collision>
+			<geometry>
+				<mesh filename="file:///home/mdio/Documents/Projects/Robotics/ros2_ws/src/excavator_working_arm/meshes/bucket_reduced.dae" scale="0.025 0.025 0.025" />
+			</geometry>
+			<contact_coefficients mu="0" kp="1000.0" kd="1.0" />
+		</collision>
+	</link>
+</robot>

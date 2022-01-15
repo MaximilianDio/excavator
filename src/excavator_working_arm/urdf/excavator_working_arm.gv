@@ -1,0 +1,32 @@
+digraph G {
+node [shape=box];
+"ground" [label="ground"];
+"lower_structure" [label="lower_structure"];
+"upper_structure" [label="upper_structure"];
+"boom" [label="boom"];
+"arm" [label="arm"];
+"bucket" [label="bucket"];
+"bucket_actuator" [label="bucket_actuator"];
+"arm_actuator" [label="arm_actuator"];
+"boom_actuator_cylinder" [label="boom_actuator_cylinder"];
+"boom_actuator_piston" [label="boom_actuator_piston"];
+node [shape=ellipse, color=blue, fontcolor=blue];
+"ground" -> "ground" [label="xyz: 0 0 0 \nrpy: 0 -0 0"]
+"ground" -> "lower_structure"
+"lower_structure" -> "joint_slew_axis" [label="xyz: 0 0 1.125 \nrpy: 0 -0 0"]
+"joint_slew_axis" -> "upper_structure"
+"upper_structure" -> "joint_boom" [label="xyz: 0.12 0 0.6075 \nrpy: 0 -0 0"]
+"joint_boom" -> "boom"
+"boom" -> "joint_arm" [label="xyz: -4.55 0 3.5 \nrpy: 0 -0 0"]
+"joint_arm" -> "arm"
+"arm" -> "joint_bucket" [label="xyz: -1.754 0 -2.99 \nrpy: 0 -0 0"]
+"joint_bucket" -> "bucket"
+"arm" -> "joint_bucket_actuator" [label="xyz: -0.669 0 0.0525 \nrpy: 0 -0 0"]
+"joint_bucket_actuator" -> "bucket_actuator"
+"boom" -> "joint_arm_actuator" [label="xyz: -1.925 0 2.535 \nrpy: 0 -0 0"]
+"joint_arm_actuator" -> "arm_actuator"
+"upper_structure" -> "joint_boom_actuator_cylinder" [label="xyz: -1.039 0 0.1638 \nrpy: 0 -0 0"]
+"joint_boom_actuator_cylinder" -> "boom_actuator_cylinder"
+"boom_actuator_cylinder" -> "joint_boom_actuator_piston" [label="xyz: 0 0 0 \nrpy: 0 -0 0"]
+"joint_boom_actuator_piston" -> "boom_actuator_piston"
+}
