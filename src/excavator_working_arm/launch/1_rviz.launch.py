@@ -43,7 +43,7 @@ def generate_launch_description():
     # map ui to joint_vel
     map_ui_to_joint_vel_node = Node(
         package="excavator_working_arm",
-        executable="excavator_ui_to_joint_vel",
+        executable="excavator_joint_ui",
         name="excavator_map_ui",
     )
 

@@ -21,6 +21,39 @@ l_bucket5 = 26.344  # constant
 xi = 0.4305008189  # constant
 
 
+class DynJointState:
+    def __init__(self, min_value, max_value, x0=0.0, dx0=0.0, d2x0=0.0):
+        self.min_ = min_value
+        self.max_ = max_value
+        self.x_ = x0  # state
+        self.dx_ = dx0  # derivative of state
+        self.d2x_ = d2x0  # second derivative
+
+    def clip(self):
+        """clips joint state if limit exceeded
+
+        Args:
+            joint_state (float):
+            min_joint_state (float):
+            max_joint_state (float):
+
+        Returns:
+            float, bool: new_joint_state, is_clipped
+        """
+        if self.x_ < self.min_:
+            self.x_ = self.min_
+            return True
+        elif self.x_ > self.max_:
+            self.x_ = self.max_
+            return True
+        else:
+            return False
+
+    def integrate(self, dt):
+        self.x_ = self.x_ + dt * self.dx_ + 1 / 2 * dt * dt * self.d2x_
+        self.dx_ = self.dx_ + dt * self.d2x_
+
+
 def triangle_length_2_angle(a, b, c):
     """calculates the angle opposite of length c provided all lengths of triangle based on cosine rule
 
@@ -41,25 +74,6 @@ def triangle_length_2_angle(a, b, c):
         raise ArgumentError("Lengths of triangle must be strictly positive!")
 
     return gamma
-
-
-def clip_joint_state(joint_state, min_joint_state, max_joint_state):
-    """clips joint state if limit exceeded
-
-    Args:
-        joint_state (float):
-        min_joint_state (float):
-        max_joint_state (float):
-
-    Returns:
-        float, bool: new_joint_state, is_clipped
-    """
-    if joint_state < min_joint_state:
-        return min_joint_state, True
-    elif joint_state > max_joint_state:
-        return max_joint_state, True
-    else:
-        return joint_state, False
 
 
 def piston_to_rotation_joints_boom(joint_boom_actuator_piston):

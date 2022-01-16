@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 # ros client library
+import enum
 import rclpy
 from rclpy.node import Node
 from rclpy.qos import QoSProfile
@@ -10,44 +11,39 @@ from math import inf
 
 # local submodules
 try:
-    from .submodules.excavator_kinematics import (
-        piston_to_rotation_joints_arm,
-        piston_to_rotation_joints_boom,
-        piston_to_rotation_joints_bucket,
-    )
+    from .submodules import excavator_kinematics as ek
+    from .submodules.excavator_kinematics import DynJointState
 except:
     # if in debug mode
-    from submodules.excavator_kinematics import (
-        piston_to_rotation_joints_arm,
-        piston_to_rotation_joints_boom,
-        piston_to_rotation_joints_bucket,
-    )
+    import submodules.excavator_kinematics as ek
+    from submodules.excavator_kinematics import DynJointState
 
 
 # messages
-from sensor_msgs.msg import JointState
-from excavator_interfaces.msg import ExcavatorJointVel
+from sensor_msgs.msg import JointState as JSmsg
+from excavator_interfaces.msg import ExcavatorPistonVel, ExcavatorAngleVel
 
 # services
 
 
-def clip_joint_state(joint_state, min_joint_state, max_joint_state):
-    """clips joint state if limit exceeded
-
-    Args:
-        joint_state (float):
-        min_joint_state (float):
-        max_joint_state (float):
-
-    Returns:
-        float, bool: new_joint_state, is_clipped
-    """
-    if joint_state < min_joint_state:
-        return min_joint_state, True
-    elif joint_state > max_joint_state:
-        return max_joint_state, True
-    else:
-        return joint_state, False
+class RedundantJointStates:
+    def __init__(self):
+        # todo get the values from urdf file
+        # NOTE have to be exactly the same as defined in urdf file!
+        self.states = {
+            "joint_slew_axis": DynJointState(-inf, inf),
+            "joint_boom": DynJointState(-inf, inf),
+            "joint_boom_actuator_cylinder": DynJointState(-inf, inf),
+            "joint_boom_actuator_piston": DynJointState(-0.65, 0.6),
+            "joint_arm": DynJointState(-inf, inf),
+            "joint_arm_actuator_cylinder": DynJointState(-inf, inf),
+            "joint_arm_actuator_piston": DynJointState(-0.85, 0.4),
+            "joint_bucket_actuator_piston": DynJointState(-0.85, 0.4),
+            "joint_bucket_actuator_cylinder": DynJointState(-inf, inf),
+            "joint_bucket_link1": DynJointState(-inf, inf),
+            "joint_bucket_link2": DynJointState(-inf, inf),
+            "joint_bucket": DynJointState(-inf, inf),
+        }
 
 
 # Main Node
@@ -60,156 +56,119 @@ class ExcavatorJointStatePublisher(Node):
         # quality of service (QoS)
         qos_profile = QoSProfile(depth=10)
 
-        # todo get the values from urdf file
-        self.min_minimal_joint_value = {
-            "joint_slew_axis": -inf,
-            "joint_boom_actuator_piston": -0.65,
-            "joint_arm_actuator_piston": -0.85,
-            "joint_bucket_actuator_piston": -0.85,
-        }
-        self.max_minimal_joint_value = {
-            "joint_slew_axis": inf,
-            "joint_boom_actuator_piston": 0.6,
-            "joint_arm_actuator_piston": 0.4,
-            "joint_bucket_actuator_piston": 0.4,
-        }
-        # initial state
-        self.minimal_joint_states = {
-            "joint_slew_axis": 0.0,
-            "joint_boom_actuator_piston": 0.0,
-            "joint_arm_actuator_piston": -0.0,
-            "joint_bucket_actuator_piston": 0.0,
-        }
-        self.minimal_joint_vel = {
-            "joint_slew_axis": 0.0,
-            "joint_boom_actuator_piston": 0.00,
-            "joint_arm_actuator_piston": 0.00,
-            "joint_bucket_actuator_piston": 0.0,
+        self.red_js_ = RedundantJointStates()
+
+        self.minimal_js_ = {
+            "joint_slew_axis": DynJointState(-inf, inf),
+            "joint_boom_actuator_piston": DynJointState(-0.65, 0.6),
+            "joint_arm_actuator_piston": DynJointState(-0.85, 0.4),
+            "joint_bucket_actuator_piston": DynJointState(-0.85, 0.4),
         }
 
         # subscriber
         self.update_joint_vel_sub_ = self.create_subscription(
-            ExcavatorJointVel,
-            "/excavator_joint_vel",
+            ExcavatorPistonVel,
+            "/excavator_piston_vel",
             self.callback_update_join_vel,
             qos_profile,
         )
 
         # publisher
-        self.joint_state_pub_ = self.create_publisher(
-            JointState, "/joint_states", qos_profile
-        )
+        self.js_pub_ = self.create_publisher(JSmsg, "/joint_states", qos_profile)
 
         # timer
         self.timer_rate_ = 1 / 100
         self.timer_ = self.create_timer(self.timer_rate_, self.publish_joint_state)
 
-        # initial publish
-        self.publish_joint_state()
-
         # initialization complete
         self.get_logger().info(self.node_name_ + " has been started!")
 
-    def callback_update_join_vel(self, msg):
+    def callback_update_join_vel(self, msg: ExcavatorPistonVel):
 
-        self.minimal_joint_vel["joint_slew_axis"] = msg.slew_axis
-        self.minimal_joint_vel["joint_boom_actuator_piston"] = msg.boom_actuator_piston
-        self.minimal_joint_vel["joint_arm_actuator_piston"] = msg.arm_actuator_piston
-        self.minimal_joint_vel[
+        self.minimal_js_["joint_slew_axis"].dx_ = msg.slew_angle
+        self.minimal_js_["joint_boom_actuator_piston"].dx_ = msg.boom_actuator_piston
+        self.minimal_js_["joint_arm_actuator_piston"].dx_ = msg.arm_actuator_piston
+        self.minimal_js_[
             "joint_bucket_actuator_piston"
-        ] = msg.bucket_actuator_piston
+        ].dx_ = msg.bucket_actuator_piston
 
     def publish_joint_state(self):
 
-        for joint, joint_state in self.minimal_joint_states.items():
-            # update state
-            joint_state = joint_state + self.minimal_joint_vel[joint] * self.timer_rate_
-            # limit joint state
-            [self.minimal_joint_states[joint], clipped] = clip_joint_state(
-                joint_state,
-                self.min_minimal_joint_value[joint],
-                self.max_minimal_joint_value[joint],
-            )
-            if clipped:
-                # self.get_logger().warn(
-                #     "maximum joint state for "
-                #     + joint
-                #     + " was reached - clipping piston state!"
-                # )
-                pass
-
-        # calc redundant states
-        redundant_joint_states = self.calc_joint_states()
-
         # publish joint_state
-        joint_state = JointState()
+        js = JSmsg()
 
         now = self.get_clock().now()
-        joint_state.header.stamp = now.to_msg()
-        joint_state.name = list(redundant_joint_states.keys())
-        joint_state.position = list(redundant_joint_states.values())
+        js.header.stamp = now.to_msg()
+        js.name = list(self.red_js_.states.keys())
+        js.position = []
 
-        self.joint_state_pub_.publish(joint_state)
+        # integrate state and clip
+        for joint_name, state in self.minimal_js_.items():
+            # update state
+            self.minimal_js_[joint_name].integrate(self.timer_rate_)
+            clipped = self.minimal_js_[joint_name].clip()
 
-    def calc_joint_states(self):
-        geometry_scale = 1 / 0.025
+            if clipped:
+                info_msg = "maximum joint state for " + joint_name + " was reached!"
+                # self.get_logger().info(info_msg)
 
-        # NOTE have to be exactly the same as defined in urdf file!
-        redundant_joint_states = {
-            "joint_slew_axis": self.minimal_joint_states["joint_slew_axis"],
-            "joint_boom": 0.0,
-            "joint_boom_actuator_cylinder": 0.0,
-            "joint_boom_actuator_piston": self.minimal_joint_states[
-                "joint_boom_actuator_piston"
-            ],
-            "joint_arm": 0.0,
-            "joint_arm_actuator_cylinder": 0.0,
-            "joint_arm_actuator_piston": self.minimal_joint_states[
-                "joint_arm_actuator_piston"
-            ],
-            "joint_bucket_actuator_piston": self.minimal_joint_states[
-                "joint_bucket_actuator_piston"
-            ],
-            "joint_bucket_actuator_cylinder": 0.0,
-            "joint_bucket_link1": 0.0,
-            "joint_bucket_link2": 0.0,
-            "joint_bucket": 0.0,
-        }
+        # calc redundant states
+        self.calc_piston_to_joint_states()
+
+        # append values
+        for state in self.red_js_.states.values():
+            js.position.append(state.x_)
+
+        # publish joint state message
+        self.js_pub_.publish(js)
+
+    def calc_piston_to_joint_states(self):
+        """calculates remaining working arm joint states based on piston positions
+
+        Raises:
+            ValueError: if singularity is reached
+        """
 
         try:
-            ## BOOM forward kinematics
-            [
-                redundant_joint_states["joint_boom"],
-                redundant_joint_states["joint_boom_actuator_cylinder"],
-            ] = piston_to_rotation_joints_boom(
-                redundant_joint_states["joint_boom_actuator_piston"]
-            )
+            ## piston positions to other joint positions
+            # BOOM forward kinematics
 
-            ## ARM forward kinematics
+            self.red_js_.states["joint_boom_actuator_piston"] = self.minimal_js_[
+                "joint_boom_actuator_piston"
+            ]
             [
-                redundant_joint_states["joint_arm"],
-                redundant_joint_states["joint_arm_actuator_cylinder"],
-            ] = piston_to_rotation_joints_arm(
-                redundant_joint_states["joint_arm_actuator_piston"]
+                self.red_js_.states["joint_boom"].x_,
+                self.red_js_.states["joint_boom_actuator_cylinder"].x_,
+            ] = ek.piston_to_rotation_joints_boom(
+                self.minimal_js_["joint_boom_actuator_piston"].x_
             )
-
-            ## BUCKET forward kinematics
+            # ARM forward kinematics
+            self.red_js_.states["joint_arm_actuator_piston"] = self.minimal_js_[
+                "joint_arm_actuator_piston"
+            ]
             [
-                redundant_joint_states["joint_bucket_actuator_cylinder"],
-                redundant_joint_states["joint_bucket_link1"],
-                redundant_joint_states["joint_bucket_link2"],
-                redundant_joint_states["joint_bucket"],
-            ] = piston_to_rotation_joints_bucket(
-                redundant_joint_states["joint_bucket_actuator_piston"]
+                self.red_js_.states["joint_arm"].x_,
+                self.red_js_.states["joint_arm_actuator_cylinder"].x_,
+            ] = ek.piston_to_rotation_joints_arm(
+                self.minimal_js_["joint_arm_actuator_piston"].x_
+            )
+            # BUCKET forward kinematics
+            self.red_js_.states["joint_bucket_actuator_piston"] = self.minimal_js_[
+                "joint_bucket_actuator_piston"
+            ]
+            [
+                self.red_js_.states["joint_bucket_actuator_cylinder"].x_,
+                self.red_js_.states["joint_bucket_link1"].x_,
+                self.red_js_.states["joint_bucket_link2"].x_,
+                self.red_js_.states["joint_bucket"].x_,
+            ] = ek.piston_to_rotation_joints_bucket(
+                self.minimal_js_["joint_bucket_actuator_piston"].x_
             )
 
         except ValueError as err:
-            self.get_logger().error(
-                "Singularity reached when calculating joint states!"
-            )
-            raise ValueError("Singularity reached when calculating joint states!")
-
-        return redundant_joint_states
+            err_msg = "Singularity reached when calculating joint states!"
+            self.get_logger().error(err_msg)
+            raise ValueError(err_msg)
 
 
 def main(args=None):

@@ -16,7 +16,8 @@ find_package(ament_cmake REQUIRED)
 find_package(rosidl_default_generators REQUIRED)
 
 rosidl_generate_interfaces(${PROJECT_NAME}
-  "msg/ExcavatorJointVel.msg"
+  "msg/ExcavatorPistonVel.msg"
+  "msg/ExcavatorAngleVel.msg"
 )
 
 ament_package()

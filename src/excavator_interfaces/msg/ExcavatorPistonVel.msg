@@ -1,4 +1,4 @@
-float64 slew_axis
+float64 slew_angle
 float64 boom_actuator_piston
 float64 arm_actuator_piston
 float64 bucket_actuator_piston

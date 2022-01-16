@@ -25,7 +25,7 @@ setup(
     tests_require=["pytest"],
     entry_points={
         "console_scripts": [
-            "excavator_ui_to_joint_vel = excavator_working_arm.excavator_ui_to_joint_vel:main",
+            "excavator_joint_ui = excavator_working_arm.excavator_joint_ui:main",
             "excavator_joint_state_publisher = excavator_working_arm.excavator_joint_state_publisher:main",
         ],
     },
