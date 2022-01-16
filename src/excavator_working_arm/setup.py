@@ -3,6 +3,7 @@ from glob import glob
 import os
 
 package_name = "excavator_working_arm"
+submodules = "excavator_working_arm/submodules"
 
 setup(
     name=package_name,
